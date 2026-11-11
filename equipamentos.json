@@ -1,0 +1,13 @@
+[
+    {
+        "id_ativo": 5,
+        "nome": "Mouse",
+        "responsavel": "Matheus",
+        "setor": "Laboratorio",
+        "tipo": "NOTEBOOKS",
+        "vulnerabilidades_ids": [
+            1
+        ],
+        "dependencias": {}
+    }
+]

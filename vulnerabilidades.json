@@ -1,0 +1,9 @@
+[
+    {
+        "id_vul": 1,
+        "descricao": "Firmware desatualizado",
+        "categoria": "Software",
+        "severidade": 8.5,
+        "status": "Aberta"
+    }
+]
