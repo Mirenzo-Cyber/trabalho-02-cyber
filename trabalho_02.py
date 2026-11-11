@@ -1,8 +1,12 @@
 import sys
 
 # Força o terminal a ler e escrever em UTF-8 para evitar erros de acentuação
-sys.stdout.reconfigure(encoding="utf-8")
-sys.stdin.reconfigure(encoding="utf-8")
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stdin.reconfigure(encoding="utf-8")
+except AttributeError:
+    # Se estiver a rodar através do Pytest, ignora a reconfiguração
+    pass
 
 import json
 import numpy as np
