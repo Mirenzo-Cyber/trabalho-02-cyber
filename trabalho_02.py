@@ -1,8 +1,8 @@
 import sys
 
 # Força o terminal a ler e escrever em UTF-8 para evitar erros de acentuação
-sys.stdout.reconfigure(encoding='utf-8')
-sys.stdin.reconfigure(encoding='utf-8')
+sys.stdout.reconfigure(encoding="utf-8")
+sys.stdin.reconfigure(encoding="utf-8")
 
 import json
 import numpy as np
@@ -30,7 +30,7 @@ class Equipamento:
         self.setor = setor
         self.tipo = tipo
         self.vulnerabilidades_ids = []  # IDs das vulnerabilidades associadas (Matriz M)
-        self.dependencias = {}          # {"id_alvo": fracao_risco} (Matriz A)
+        self.dependencias = {}  # {"id_alvo": fracao_risco} (Matriz A)
 
     # Polimorfismo: cada subclasse define o seu próprio fator de exposição
     def fator_exposicao(self):
@@ -46,7 +46,7 @@ class Equipamento:
             "tipo": self.tipo,
             "fator_exposicao": self.fator_exposicao(),
             "vulnerabilidades_ids": self.vulnerabilidades_ids,
-            "dependencias": self.dependencias
+            "dependencias": self.dependencias,
         }
 
 
@@ -74,7 +74,7 @@ class Switch(Equipamento):
 # --- ETAPAS 2, 3 e 4: GESTÃO DO SISTEMA, JSON E ÁLGEBRA LINEAR ---
 class SistemaInventario:
     def __init__(self):
-        self.equipamentos = {}      # id_ativo -> Objeto Equipamento
+        self.equipamentos = {}  # id_ativo -> Objeto Equipamento
         self.vulnerabilidades = {}  # id_vul -> Objeto Vulnerabilidade
         self.carregar_dados()
 
@@ -84,7 +84,7 @@ class SistemaInventario:
             "COMPUTADORES": Computador,
             "NOTEBOOKS": Notebook,
             "SERVIDORES": Servidor,
-            "SWITCHES": Switch
+            "SWITCHES": Switch,
         }
         classe_escolhida = mapa_classes.get(str(tipo).upper(), Equipamento)
         return classe_escolhida(id_ativo, nome, responsavel, setor, str(tipo).upper())
@@ -105,7 +105,11 @@ class SistemaInventario:
             with open("equipamentos.json", "r", encoding="utf-8") as f:
                 for d in json.load(f):
                     eq = self.criar_objeto_equipamento(
-                        d["id_ativo"], d["nome"], d["responsavel"], d["setor"], d["tipo"]
+                        d["id_ativo"],
+                        d["nome"],
+                        d["responsavel"],
+                        d["setor"],
+                        d["tipo"],
                     )
                     eq.vulnerabilidades_ids = d.get("vulnerabilidades_ids", [])
                     eq.dependencias = d.get("dependencias", {})
@@ -117,7 +121,11 @@ class SistemaInventario:
             with open("vulnerabilidades.json", "r", encoding="utf-8") as f:
                 for d in json.load(f):
                     vul = Vulnerabilidade(
-                        d["id_vul"], d["descricao"], d["categoria"], d["severidade"], d.get("status", "Aberta")
+                        d["id_vul"],
+                        d["descricao"],
+                        d["categoria"],
+                        d["severidade"],
+                        d.get("status", "Aberta"),
                     )
                     self.vulnerabilidades[vul.id_vul] = vul
         except FileNotFoundError:
@@ -135,7 +143,9 @@ class SistemaInventario:
             resp = input("Responsável: ").strip()
             setor = input("Setor: ").strip()
 
-            print("Categorias disponíveis: 1. COMPUTADORES | 2. NOTEBOOKS | 3. SERVIDORES | 4. SWITCHES")
+            print(
+                "Categorias disponíveis: 1. COMPUTADORES | 2. NOTEBOOKS | 3. SERVIDORES | 4. SWITCHES"
+            )
             opcoes = {1: "COMPUTADORES", 2: "NOTEBOOKS", 3: "SERVIDORES", 4: "SWITCHES"}
             tipo = opcoes.get(int(input("Escolha o número da categoria: ")))
 
@@ -156,11 +166,15 @@ class SistemaInventario:
             id_vul = int(input("ID da Vulnerabilidade (apenas números): "))
             if id_vul not in self.vulnerabilidades:
                 desc = input("Descrição da vulnerabilidade: ").strip()
-                cat = input("Categoria (ex: Software desatualizado, Senha fraca): ").strip()
+                cat = input(
+                    "Categoria (ex: Software desatualizado, Senha fraca): "
+                ).strip()
                 sev = float(input("Severidade numérica CVSS (ex: 7.5): "))
                 self.vulnerabilidades[id_vul] = Vulnerabilidade(id_vul, desc, cat, sev)
             else:
-                print(f"Vulnerabilidade existente selecionada: {self.vulnerabilidades[id_vul].descricao}")
+                print(
+                    f"Vulnerabilidade existente selecionada: {self.vulnerabilidades[id_vul].descricao}"
+                )
 
             id_eq = int(input("ID do Equipamento afetado por esta vulnerabilidade: "))
             if id_eq in self.equipamentos:
@@ -169,7 +183,9 @@ class SistemaInventario:
                     self.salvar_dados()
                     print("Vulnerabilidade associada e salva no arquivo JSON!")
                 else:
-                    print("Aviso: O equipamento já possui esta vulnerabilidade associada.")
+                    print(
+                        "Aviso: O equipamento já possui esta vulnerabilidade associada."
+                    )
             else:
                 print("Erro: Equipamento não encontrado.")
         except ValueError:
@@ -178,19 +194,25 @@ class SistemaInventario:
     def cadastrar_dependencia(self):
         print("\n--- Cadastrar Dependência entre Equipamentos ---")
         try:
-            id_origem = int(input("ID do equipamento dependente (o que recebe o risco): "))
+            id_origem = int(
+                input("ID do equipamento dependente (o que recebe o risco): ")
+            )
             if id_origem not in self.equipamentos:
                 print("Erro: Equipamento dependente não encontrado.")
                 return
 
-            id_destino = int(input("ID do equipamento do qual depende (origem do risco): "))
+            id_destino = int(
+                input("ID do equipamento do qual depende (origem do risco): ")
+            )
             if id_destino not in self.equipamentos:
                 print("Erro: Equipamento de destino não encontrado.")
                 return
 
             # Regra: Um ativo não pode depender de si mesmo (diagonal A_ii = 0)
             if id_origem == id_destino:
-                print("Erro: Um equipamento não pode depender de si mesmo (A_ii deve ser 0).")
+                print(
+                    "Erro: Um equipamento não pode depender de si mesmo (A_ii deve ser 0)."
+                )
                 return
 
             peso = float(input("Fração de risco transmitida (ex: 0.25 para 25%): "))
@@ -201,17 +223,25 @@ class SistemaInventario:
             eq = self.equipamentos[id_origem]
 
             # Soma das dependências já cadastradas na linha deste equipamento
-            soma_atual = sum(float(v) for k, v in eq.dependencias.items() if k != str(id_destino))
+            soma_atual = sum(
+                float(v) for k, v in eq.dependencias.items() if k != str(id_destino)
+            )
 
             # Regra: Soma da linha < 1 garante que (I - A) seja estritamente diagonal dominante e invertível
             if soma_atual + peso >= 1.0:
-                print(f"Erro: A soma das dependências ficaria em {soma_atual + peso:.2f}.")
-                print("Regra violada: A soma da linha em A deve ser estritamente menor que 1.0.")
+                print(
+                    f"Erro: A soma das dependências ficaria em {soma_atual + peso:.2f}."
+                )
+                print(
+                    "Regra violada: A soma da linha em A deve ser estritamente menor que 1.0."
+                )
                 return
 
             eq.dependencias[str(id_destino)] = peso
             self.salvar_dados()
-            print(f"Sucesso: Equipamento {id_origem} agora herda {peso * 100:.1f}% do risco do Equipamento {id_destino}!")
+            print(
+                f"Sucesso: Equipamento {id_origem} agora herda {peso * 100:.1f}% do risco do Equipamento {id_destino}!"
+            )
         except ValueError:
             print("Erro: Entrada inválida. Digite números válidos.")
 
@@ -222,12 +252,19 @@ class SistemaInventario:
             return
 
         for eq in self.equipamentos.values():
-            print(f"\n[ID: {eq.id_ativo}] {eq.nome} | Tipo: {eq.tipo} | Fator Exposição: {eq.fator_exposicao()}")
+            print(
+                f"\n[ID: {eq.id_ativo}] {eq.nome} | Tipo: {eq.tipo} | Fator Exposição: {eq.fator_exposicao()}"
+            )
             print(f"  Responsável: {eq.responsavel} | Setor: {eq.setor}")
-            print(f"  Vulnerabilidades (IDs): {eq.vulnerabilidades_ids if eq.vulnerabilidades_ids else 'Nenhuma'}")
-            
+            print(
+                f"  Vulnerabilidades (IDs): {eq.vulnerabilidades_ids if eq.vulnerabilidades_ids else 'Nenhuma'}"
+            )
+
             if eq.dependencias:
-                deps_formatadas = [f"Ativo {alvo} ({peso * 100:.1f}%)" for alvo, peso in eq.dependencias.items()]
+                deps_formatadas = [
+                    f"Ativo {alvo} ({peso * 100:.1f}%)"
+                    for alvo, peso in eq.dependencias.items()
+                ]
                 print(f"  Depende de: {', '.join(deps_formatadas)}")
             else:
                 print("  Depende de: Nenhuma dependência registrada.")
@@ -236,13 +273,15 @@ class SistemaInventario:
     def calcular_analise_risco_api(self):
         lista_eq = list(self.equipamentos.values())
         lista_vul = list(self.vulnerabilidades.values())
-        
+
         n = len(lista_eq)
         m = len(lista_vul)
-        
+
         # Valida se existem dados suficientes antes de montar as matrizes
         if n == 0 or m == 0:
-            return {"erro": "É necessário ter pelo menos um equipamento e uma vulnerabilidade cadastrados."}
+            return {
+                "erro": "É necessário ter pelo menos um equipamento e uma vulnerabilidade cadastrados."
+            }
 
         # Mapeia o ID real de cada objeto para o seu índice na matriz (0 até n-1)
         mapa_idx_eq = {eq.id_ativo: i for i, eq in enumerate(lista_eq)}
@@ -251,7 +290,7 @@ class SistemaInventario:
         # Inicializa a Matriz de Incidência (M) e o Vetor de Severidade (v) com zeros
         M = np.zeros((n, m), dtype=np.float64)
         v = np.zeros((m, 1), dtype=np.float64)
-        
+
         # Preenche o vetor v com a nota CVSS de cada vulnerabilidade
         for j, vul in enumerate(lista_vul):
             v[j, 0] = vul.severidade
@@ -289,7 +328,7 @@ class SistemaInventario:
             return {
                 "erro": "O sistema linear (I - A) não é invertível ou é numericamente instável.",
                 "determinante": determinante,
-                "numero_condicao": numero_condicao
+                "numero_condicao": numero_condicao,
             }
 
         # Resolve diretamente o sistema linear (I - A)x = b para encontrar o Risco Efetivo (x)
@@ -300,21 +339,23 @@ class SistemaInventario:
         for i, eq in enumerate(lista_eq):
             risco_proprio = round(float(b[i, 0]), 2)
             risco_efetivo = round(float(x[i, 0]), 2)
-            relatorio.append({
-                "id_ativo": eq.id_ativo,
-                "nome": eq.nome,
-                "tipo": eq.tipo,
-                "fator_exposicao": eq.fator_exposicao(),
-                "risco_proprio": risco_proprio,
-                "risco_efetivo": risco_efetivo,
-                "risco_total": risco_efetivo
-            })
-            
+            relatorio.append(
+                {
+                    "id_ativo": eq.id_ativo,
+                    "nome": eq.nome,
+                    "tipo": eq.tipo,
+                    "fator_exposicao": eq.fator_exposicao(),
+                    "risco_proprio": risco_proprio,
+                    "risco_efetivo": risco_efetivo,
+                    "risco_total": risco_efetivo,
+                }
+            )
+
         return {
             "invertivel": True,
             "determinante": round(determinante, 6),
             "numero_condicao": round(numero_condicao, 4),
-            "equipamentos": relatorio
+            "equipamentos": relatorio,
         }
 
     # Exibe o resultado da análise de risco formatado no terminal
@@ -326,16 +367,22 @@ class SistemaInventario:
             print(f"Erro: {resultado['erro']}")
             return
 
-        print(f"Matriz (I - A) Invertível: Sim | Determinante: {resultado['determinante']} | Nº de Condição: {resultado['numero_condicao']}")
-        print(f"\n{'ID':<5} | {'Equipamento':<20} | {'Risco Próprio (b)':<18} | {'Risco Efetivo (x)'}")
+        print(
+            f"Matriz (I - A) Invertível: Sim | Determinante: {resultado['determinante']} | Nº de Condição: {resultado['numero_condicao']}"
+        )
+        print(
+            f"\n{'ID':<5} | {'Equipamento':<20} | {'Risco Próprio (b)':<18} | {'Risco Efetivo (x)'}"
+        )
         print("-" * 68)
         for item in resultado["equipamentos"]:
-            print(f"{item['id_ativo']:<5} | {item['nome']:<20} | {item['risco_proprio']:<18.2f} | {item['risco_efetivo']:.2f}")
+            print(
+                f"{item['id_ativo']:<5} | {item['nome']:<20} | {item['risco_proprio']:<18.2f} | {item['risco_efetivo']:.2f}"
+            )
 
 
 # --- MENU PRINCIPAL ---
 # Impede que o menu do terminal trave o Flask quando o arquivo é importado pelo app.py
-if __name__ == '__main__':
+if __name__ == "__main__":
     sistema = SistemaInventario()
 
     while True:
