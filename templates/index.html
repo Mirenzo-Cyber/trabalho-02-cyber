@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Inventário e Análise de Risco</title>
+    <!-- Carrega o Bootstrap para o estilo visual da página -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-dark text-light p-4">
+
+    <div class="container-fluid">
+        <!-- CABEÇALHO -->
+        <header class="mb-4 pb-2 border-bottom border-secondary d-flex justify-content-between align-items-center">
+            <h3 class="text-info m-0">🛡️ Sistema de Inventário e Análise de Risco (POO + NumPy)</h3>
+            <button onclick="carregarDados()" class="btn btn-outline-info btn-sm">🔄 Atualizar Painel</button>
+        </header>
+
+        <div class="row g-4">
+
+            <!-- ================================================================= -->
+            <!-- COLUNA DA ESQUERDA: Formulários de Ação                           -->
+            <!-- ================================================================= -->
+            <div class="col-lg-4">
+
+                <!-- 1. Cartão: Cadastrar ou Atualizar Equipamento -->
+                <div class="card bg-secondary text-white p-3 shadow mb-3">
+                    <h6 class="mb-3 fw-bold text-info">1. Cadastrar / Editar Equipamento</h6>
+                    <form id="form_equipamento" onsubmit="event.preventDefault(); salvarEquipamento();">
+                        <input id="id_ativo" type="number" class="form-control form-control-sm mb-2"
+                            placeholder="ID do equipamento" required>
+                        <input id="nome" type="text" class="form-control form-control-sm mb-2"
+                            placeholder="Nome do equipamento" required>
+                        <input id="responsavel" type="text" class="form-control form-control-sm mb-2"
+                            placeholder="Responsável" required>
+                        <input id="setor" type="text" class="form-control form-control-sm mb-2" placeholder="Setor"
+                            required>
+
+                        <select id="tipo" class="form-select form-select-sm mb-3">
+                            <option value="COMPUTADORES">Computadores (Fator 1.0)</option>
+                            <option value="NOTEBOOKS">Notebooks (Fator 1.2)</option>
+                            <option value="SWITCHES">Switches (Fator 1.3)</option>
+                            <option value="SERVIDORES">Servidores (Fator 1.5)</option>
+                        </select>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-info btn-sm w-100 fw-bold">Cadastrar (POST)</button>
+                            <button type="button" onclick="atualizarEquipamento()"
+                                class="btn btn-warning btn-sm w-100 fw-bold">Atualizar (PUT)</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 2. Cartão: Cadastrar e Associar Vulnerabilidade (Matriz M e Vetor v) -->
+                <div class="card bg-secondary text-white p-3 shadow mb-3">
+                    <h6 class="mb-3 fw-bold text-info">2. Associar Vulnerabilidade (Matriz M e Vetor v)</h6>
+                    <form id="form_vulnerabilidade" onsubmit="event.preventDefault(); salvarVulnerabilidade();">
+                        <input id="id_vul" type="number" class="form-control form-control-sm mb-2"
+                            placeholder="ID da vulnerabilidade" required>
+                        <input id="desc_vul" type="text" class="form-control form-control-sm mb-2"
+                            placeholder="Descrição da falha" required>
+                        <input id="cat_vul" type="text" class="form-control form-control-sm mb-2"
+                            placeholder="Categoria" required>
+                        <input id="sev_vul" type="number" step="0.1" class="form-control form-control-sm mb-2"
+                            placeholder="Severidade CVSS (0.0 a 10.0)" required>
+                        <input id="id_eq_vul" type="number" class="form-control form-control-sm mb-3"
+                            placeholder="ID do equipamento afetado" required>
+
+                        <button type="submit" class="btn btn-info btn-sm w-100 fw-bold">Associar
+                            Vulnerabilidade</button>
+                    </form>
+                </div>
+
+                <!-- 3. Cartão: Cadastrar Dependência (Matriz A) -->
+                <div class="card bg-secondary text-white p-3 shadow">
+                    <h6 class="mb-3 fw-bold text-info">3. Cadastrar Dependência (Matriz A)</h6>
+                    <form id="form_dependencia" onsubmit="event.preventDefault(); salvarDependencia();">
+                        <input id="id_origem" type="number" class="form-control form-control-sm mb-2"
+                            placeholder="ID do equipamento dependente (recebe risco)" required>
+                        <input id="id_destino" type="number" class="form-control form-control-sm mb-2"
+                            placeholder="ID do equipamento origem (transmite risco)" required>
+                        <input id="peso_dep" type="number" step="0.05" class="form-control form-control-sm mb-3"
+                            placeholder="Fração transmitida (entre 0.01 e 0.99)" required>
+
+                        <button type="submit" class="btn btn-info btn-sm w-100 fw-bold">Vincular Dependência</button>
+                    </form>
+                </div>
+
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- COLUNA DA DIREITA: Análise NumPy, Tabela de Ativos e Catálogo     -->
+            <!-- ================================================================= -->
+            <div class="col-lg-8">
+
+                <!-- 4. Cartão: Status do Sistema Linear (I - A)x = b -->
+                <div class="card bg-secondary text-white p-3 shadow mb-3">
+                    <h6 class="mb-2 fw-bold text-info">📊 Validação do Sistema Linear: (I - A)x = b</h6>
+                    <div id="status_matriz" class="small">Carregando cálculo...</div>
+                </div>
+
+                <!-- 5. Cartão: Tabela Principal de Equipamentos e Riscos -->
+                <div class="card bg-secondary text-white p-3 shadow mb-3">
+                    <h6 class="mb-3 fw-bold text-info">💻 Equipamentos, Dependências e Riscos Calculados</h6>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped table-hover align-middle mb-0 small">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nome / Setor</th>
+                                    <th>Tipo (Fator)</th>
+                                    <th>Vulnerabilidades</th>
+                                    <th>Depende de</th>
+                                    <th>Risco Próprio (b)</th>
+                                    <th>Risco Efetivo (x)</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabela_corpo"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 6. Cartão: Lista de Vulnerabilidades Cadastradas -->
+                <div class="card bg-secondary text-white p-3 shadow">
+                    <h6 class="mb-2 fw-bold text-info">🐛 Catálogo de Vulnerabilidades Cadastradas (Vetor v)</h6>
+                    <div id="lista_vulnerabilidades" class="small">Nenhuma vulnerabilidade cadastrada.</div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- SCRIPTS: Funções organizadas para conversar com a API Flask       -->
+    <!-- ================================================================= -->
+    <script>
+
+        // 1. CARREGAR TUDO: Busca equipamentos, vulnerabilidades e cálculo de risco
+        async function carregarDados() {
+            const respEq = await fetch('/equipamentos');
+            const listaEquipamentos = await respEq.json();
+
+            const respVul = await fetch('/vulnerabilidades');
+            const listaVulnerabilidades = await respVul.json();
+
+            const respRisco = await fetch('/risco');
+            const dadosRisco = await respRisco.json();
+
+            atualizarPainelMatriz(dadosRisco);
+            preencherTabelaEquipamentos(listaEquipamentos, dadosRisco);
+            preencherCatalogoVulnerabilidades(listaVulnerabilidades);
+        }
+
+
+        // 2. ATUALIZAR PAINEL DO NUMPY: Exibe invertibilidade, determinante e condição
+        function atualizarPainelMatriz(dadosRisco) {
+            const caixaStatus = document.getElementById('status_matriz');
+
+            if (dadosRisco.equipamentos) {
+                caixaStatus.innerHTML = `
+                    <span class="badge bg-success me-2">Matriz (I - A) Invertível: Sim</span>
+                    <span class="me-3">Determinante: <b>${dadosRisco.determinante}</b></span>
+                    <span>Número de Condição: <b>${dadosRisco.numero_condicao}</b></span>
+                `;
+            } else {
+                caixaStatus.innerHTML = `<span class="badge bg-warning text-dark">${dadosRisco.erro || "Aguardando dados para cálculo."}</span>`;
+            }
+        }
+
+
+        // 3. PREENCHER TABELA: Mostra ativos, vínculos, Risco Próprio (b) e Risco Efetivo (x)
+        function preencherTabelaEquipamentos(listaEquipamentos, dadosRisco) {
+            const mapaRisco = {};
+            if (dadosRisco.equipamentos) {
+                dadosRisco.equipamentos.forEach(item => {
+                    mapaRisco[item.id_ativo] = {
+                        proprio: item.risco_proprio,
+                        efetivo: item.risco_efetivo
+                    };
+                });
+            }
+
+            const corpoTabela = document.getElementById('tabela_corpo');
+            corpoTabela.innerHTML = '';
+
+            listaEquipamentos.forEach(eq => {
+                const riscos = mapaRisco[eq.id_ativo] || { proprio: '0.0', efetivo: '0.0' };
+                const vuls = eq.vulnerabilidades_ids.length > 0 ? eq.vulnerabilidades_ids.map(id => `#${id}`).join(', ') : 'Nenhuma';
+
+                // Formata as dependências (ex: ID 2: 25%)
+                const deps = Object.entries(eq.dependencias).map(([alvo, peso]) => `ID ${alvo} (${(peso * 100).toFixed(0)}%)`).join(', ') || 'Nenhuma';
+
+                corpoTabela.innerHTML += `
+                    <tr>
+                        <td class="fw-bold">${eq.id_ativo}</td>
+                        <td>${eq.nome}<br><span class="text-secondary">${eq.responsavel} | ${eq.setor}</span></td>
+                        <td>${eq.tipo} (${eq.fator_exposicao})</td>
+                        <td>${vuls}</td>
+                        <td>${deps}</td>
+                        <td><span class="badge bg-light text-dark fs-6">${riscos.proprio}</span></td>
+                        <td><span class="badge bg-warning text-dark fs-6">${riscos.efetivo}</span></td>
+                        <td>
+                            <button onclick="preencherParaEdicao(${eq.id_ativo}, '${eq.nome}', '${eq.responsavel}', '${eq.setor}', '${eq.tipo}')" class="btn btn-outline-info btn-sm mb-1">Editar</button>
+                            <button onclick="deletarAtivo(${eq.id_ativo})" class="btn btn-danger btn-sm mb-1">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+
+        // 4. PREENCHER CATÁLOGO DE VULNERABILIDADES
+        function preencherCatalogoVulnerabilidades(listaVulnerabilidades) {
+            const divVul = document.getElementById('lista_vulnerabilidades');
+            if (listaVulnerabilidades.length === 0) {
+                divVul.innerText = "Nenhuma vulnerabilidade cadastrada.";
+                return;
+            }
+            divVul.innerHTML = listaVulnerabilidades.map(v =>
+                `<span class="badge bg-dark border border-info me-2 mb-1 p-2">
+                    <b>ID ${v.id_vul}:</b> ${v.descricao} (${v.categoria}) | <b>CVSS: ${v.severidade}</b>
+                </span>`
+            ).join('');
+        }
+
+
+        // 5. CADASTRAR EQUIPAMENTO (POST)
+        async function salvarEquipamento() {
+            const dados = {
+                id_ativo: parseInt(document.getElementById('id_ativo').value),
+                nome: document.getElementById('nome').value,
+                responsavel: document.getElementById('responsavel').value,
+                setor: document.getElementById('setor').value,
+                tipo: document.getElementById('tipo').value
+            };
+
+            const resposta = await fetch('/equipamentos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
+            });
+
+            const retorno = await resposta.json();
+            if (resposta.ok) {
+                document.getElementById('form_equipamento').reset();
+                carregarDados();
+            } else {
+                alert("Erro: " + retorno.erro);
+            }
+        }
+
+
+        // 6. ATUALIZAR EQUIPAMENTO (PUT)
+        async function atualizarEquipamento() {
+            const id = document.getElementById('id_ativo').value;
+            if (!id) {
+                alert("Informe o ID do equipamento para atualizar.");
+                return;
+            }
+
+            const dados = {
+                nome: document.getElementById('nome').value,
+                responsavel: document.getElementById('responsavel').value,
+                setor: document.getElementById('setor').value,
+                tipo: document.getElementById('tipo').value
+            };
+
+            const resposta = await fetch(`/equipamentos/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
+            });
+
+            const retorno = await resposta.json();
+            if (resposta.ok) {
+                document.getElementById('form_equipamento').reset();
+                carregarDados();
+            } else {
+                alert("Erro: " + retorno.erro);
+            }
+        }
+
+
+        // Auxiliar: Copia os dados da linha para o formulário ao clicar em "Editar"
+        function preencherParaEdicao(id, nome, resp, setor, tipo) {
+            document.getElementById('id_ativo').value = id;
+            document.getElementById('nome').value = nome;
+            document.getElementById('responsavel').value = resp;
+            document.getElementById('setor').value = setor;
+            document.getElementById('tipo').value = tipo;
+        }
+
+
+        // 7. CADASTRAR E ASSOCIAR VULNERABILIDADE (POST)
+        async function salvarVulnerabilidade() {
+            const dados = {
+                id_vul: parseInt(document.getElementById('id_vul').value),
+                descricao: document.getElementById('desc_vul').value,
+                categoria: document.getElementById('cat_vul').value,
+                severidade: parseFloat(document.getElementById('sev_vul').value),
+                id_ativo: parseInt(document.getElementById('id_eq_vul').value)
+            };
+
+            const resposta = await fetch('/vulnerabilidades', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
+            });
+
+            const retorno = await resposta.json();
+            if (resposta.ok) {
+                document.getElementById('form_vulnerabilidade').reset();
+                carregarDados();
+            } else {
+                alert("Erro: " + retorno.erro);
+            }
+        }
+
+
+        // 8. CADASTRAR DEPENDÊNCIA ENTRE EQUIPAMENTOS (POST)
+        async function salvarDependencia() {
+            const dados = {
+                id_origem: parseInt(document.getElementById('id_origem').value),
+                id_destino: parseInt(document.getElementById('id_destino').value),
+                peso: parseFloat(document.getElementById('peso_dep').value)
+            };
+
+            const resposta = await fetch('/dependencias', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
+            });
+
+            const retorno = await resposta.json();
+            if (resposta.ok) {
+                document.getElementById('form_dependencia').reset();
+                carregarDados();
+            } else {
+                alert("Erro: " + retorno.erro);
+            }
+        }
+
+
+        // 9. EXCLUIR EQUIPAMENTO (DELETE)
+        async function deletarAtivo(id) {
+            await fetch(`/equipamentos/${id}`, { method: 'DELETE' });
+            carregarDados();
+        }
+
+
+        // Carrega os dados automaticamente ao abrir a página
+        carregarDados();
+
+    </script>
+</body>
+
+</html>
