@@ -62,3 +62,13 @@ def test_calculo_risco_numpy():
 
     # 4. Verifica se o determinante é diferente de zero
     assert resultado["determinante"] != 0
+
+def test_solid():
+    from dominio import Firewall, Equipamento
+    from persistencia import RepositorioMemoria
+    from servicos import ServicoInventario
+    s = ServicoInventario(repositorio=RepositorioMemoria())
+    fw = s.registrar_equipamento(99, "FW", "TI", "Rede", "FIREWALLS")
+    assert isinstance(fw, Equipamento) and isinstance(fw, Firewall) and fw.fator_exposicao() == 1.4
+    s.associar_vulnerabilidade(1, 99, "CVE", "Rede", 5.0)
+    assert s.calcular_analise_risco_api()["equipamentos"][0]["risco_proprio"] == 7.0
