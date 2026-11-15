@@ -1,9 +1,16 @@
 [
     {
-        "id_vul": 1,
-        "descricao": "Firmware desatualizado",
-        "categoria": "Software",
+        "id_vul": 101,
+        "descricao": "Falha de Autenticação Crítica no Serviço SSH",
+        "categoria": "Controle de Acesso",
         "severidade": 8.5,
+        "status": "Aberta"
+    },
+    {
+        "id_vul": 102,
+        "descricao": "Execução Remota de Código por Biblioteca Desatualizada",
+        "categoria": "Software Desatualizado",
+        "severidade": 7.0,
         "status": "Aberta"
     }
 ]

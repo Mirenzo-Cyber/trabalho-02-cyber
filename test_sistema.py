@@ -88,3 +88,32 @@ def test_design_patterns_s4_03():
     assert rel_risco["equipamentos"][0]["id_ativo"] == 2
     rel_nome = s.calcular_analise_risco_api(estrategia_ordenacao=estrategia_ordenar_por_nome)
     assert rel_nome["equipamentos"][0]["nome"] == "A-Ativo"
+
+def test_persistencia_json_s4_04(tmp_path):
+    from dominio import Servidor, Firewall
+    from persistencia import RepositorioJSON
+    from servicos import ServicoInventario
+
+    arq_eq = str(tmp_path / "eq_teste.json")
+    arq_vul = str(tmp_path / "vul_teste.json")
+    repo = RepositorioJSON(arq_eq=arq_eq, arq_vul=arq_vul)
+
+    # 1. Testa gravação atômica e recarga preservando subclasses, acentuação e vínculos
+    s1 = ServicoInventario(repositorio=repo)
+    s1.registrar_equipamento(10, "Servidor de Aplicação", "João", "TI", "SERVIDORES")
+    s1.registrar_equipamento(20, "Firewall de Perímetro", "Maria", "Segurança", "FIREWALLS")
+    s1.associar_vulnerabilidade(500, 10, "Injeção de Comando", "Validação", 9.0)
+    s1.registrar_dependencia(10, 20, 0.4)
+
+    s2 = ServicoInventario(repositorio=repo)
+    assert isinstance(s2.equipamentos[10], Servidor)
+    assert isinstance(s2.equipamentos[20], Firewall)
+    assert s2.equipamentos[10].vulnerabilidades_ids == [500]
+    assert s2.equipamentos[10].dependencias == {"20": 0.4}
+    assert s2.vulnerabilidades[500].descricao == "Injeção de Comando"
+
+    # 2. Testa tratamento de arquivo corrompido ou vazio sem quebrar o sistema
+    open(arq_eq, "w", encoding="utf-8").write("{json_corrompido_invalido")
+    open(arq_vul, "w", encoding="utf-8").write("")
+    eq_lidos, vul_lidos = repo.carregar()
+    assert eq_lidos == {} and vul_lidos == {}

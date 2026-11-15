@@ -1,13 +1,43 @@
 [
     {
-        "id_ativo": 5,
-        "nome": "Mouse",
-        "responsavel": "Matheus",
-        "setor": "Laboratorio",
-        "tipo": "NOTEBOOKS",
+        "id_ativo": 1,
+        "nome": "Servidor Principal de Produção",
+        "responsavel": "Equipe de Segurança",
+        "setor": "Data Center",
+        "tipo": "SERVIDORES",
+        "fator_exposicao": 1.5,
         "vulnerabilidades_ids": [
-            1
+            101,
+            102
+        ],
+        "dependencias": {
+            "2": 0.3
+        }
+    },
+    {
+        "id_ativo": 2,
+        "nome": "Firewall de Borda Corporativo",
+        "responsavel": "Administração de Rede",
+        "setor": "Infraestrutura",
+        "tipo": "FIREWALLS",
+        "fator_exposicao": 1.4,
+        "vulnerabilidades_ids": [
+            101
         ],
         "dependencias": {}
+    },
+    {
+        "id_ativo": 3,
+        "nome": "Notebook de Auditoria Técnica",
+        "responsavel": "Coordenação de TI",
+        "setor": "Auditoria",
+        "tipo": "NOTEBOOKS",
+        "fator_exposicao": 1.2,
+        "vulnerabilidades_ids": [
+            102
+        ],
+        "dependencias": {
+            "1": 0.25
+        }
     }
 ]
