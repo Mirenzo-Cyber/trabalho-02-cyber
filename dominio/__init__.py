@@ -1,3 +1,5 @@
+# Camada de Domínio: Entidades e Padrão Factory (S4_03)
+
 class Vulnerabilidade:
     def __init__(self, id_vul, descricao, categoria, severidade, status="Aberta"):
         self.id_vul = int(id_vul)
@@ -40,6 +42,21 @@ MAPA_TIPOS_EQUIPAMENTO = {
     "SERVIDORES": Servidor, "SWITCHES": Switch, "FIREWALLS": Firewall,
 }
 
+# Padrão Factory (S4_03): Centraliza a criação e reconstrução das subclasses corretas a partir do tipo ou JSON
+class FabricaEquipamento:
+    @staticmethod
+    def criar(id_ativo, nome, responsavel, setor, tipo):
+        cls = MAPA_TIPOS_EQUIPAMENTO.get(str(tipo).upper(), Equipamento)
+        return cls(id_ativo, nome, responsavel, setor, str(tipo).upper())
+
+    @staticmethod
+    def de_dicionario(dados):
+        eq = FabricaEquipamento.criar(
+            dados["id_ativo"], dados["nome"], dados["responsavel"], dados["setor"], dados["tipo"]
+        )
+        eq.vulnerabilidades_ids = dados.get("vulnerabilidades_ids", [])
+        eq.dependencias = dados.get("dependencias", {})
+        return eq
+
 def fabricar_equipamento(id_ativo, nome, responsavel, setor, tipo):
-    cls = MAPA_TIPOS_EQUIPAMENTO.get(str(tipo).upper(), Equipamento)
-    return cls(id_ativo, nome, responsavel, setor, str(tipo).upper())
+    return FabricaEquipamento.criar(id_ativo, nome, responsavel, setor, tipo)

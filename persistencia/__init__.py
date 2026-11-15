@@ -1,6 +1,7 @@
+# Camada de Persistência: Padrão Repository (S4_03) isolando a leitura e escrita dos ativos
 import json
 from abc import ABC, abstractmethod
-from dominio import Vulnerabilidade, fabricar_equipamento
+from dominio import Vulnerabilidade, FabricaEquipamento
 
 class InterfaceRepositorio(ABC):
     @abstractmethod
@@ -22,9 +23,8 @@ class RepositorioJSON(InterfaceRepositorio):
         try:
             with open(self.arq_eq, "r", encoding="utf-8") as f:
                 for d in json.load(f):
-                    eq = fabricar_equipamento(d["id_ativo"], d["nome"], d["responsavel"], d["setor"], d["tipo"])
-                    eq.vulnerabilidades_ids = d.get("vulnerabilidades_ids", [])
-                    eq.dependencias = d.get("dependencias", {})
+                    # Usa a FabricaEquipamento para recriar a subclasse correta a partir do JSON
+                    eq = FabricaEquipamento.de_dicionario(d)
                     equipamentos[eq.id_ativo] = eq
         except FileNotFoundError: pass
         try:

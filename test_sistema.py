@@ -72,3 +72,19 @@ def test_solid():
     assert isinstance(fw, Equipamento) and isinstance(fw, Firewall) and fw.fator_exposicao() == 1.4
     s.associar_vulnerabilidade(1, 99, "CVE", "Rede", 5.0)
     assert s.calcular_analise_risco_api()["equipamentos"][0]["risco_proprio"] == 7.0
+
+def test_design_patterns_s4_03():
+    from dominio import FabricaEquipamento, Servidor
+    from persistencia import RepositorioMemoria
+    from servicos import ServicoInventario, OrdenacaoPorRiscoEfetivo, estrategia_ordenar_por_nome
+    eq = FabricaEquipamento.de_dicionario({"id_ativo": 10, "nome": "Z-Server", "responsavel": "TI", "setor": "Core", "tipo": "SERVIDORES"})
+    assert isinstance(eq, Servidor) and eq.fator_exposicao() == 1.5
+    s = ServicoInventario(repositorio=RepositorioMemoria())
+    s.registrar_equipamento(1, "B-Ativo", "TI", "Rede", "COMPUTADORES")
+    s.registrar_equipamento(2, "A-Ativo", "TI", "Rede", "SERVIDORES")
+    s.associar_vulnerabilidade(1, 1, "V1", "Geral", 2.0)
+    s.associar_vulnerabilidade(2, 2, "V2", "Geral", 8.0)
+    rel_risco = s.calcular_analise_risco_api(estrategia_ordenacao=OrdenacaoPorRiscoEfetivo())
+    assert rel_risco["equipamentos"][0]["id_ativo"] == 2
+    rel_nome = s.calcular_analise_risco_api(estrategia_ordenacao=estrategia_ordenar_por_nome)
+    assert rel_nome["equipamentos"][0]["nome"] == "A-Ativo"

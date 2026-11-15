@@ -1,9 +1,33 @@
+# Camada de Serviços: Inclui o Padrão Strategy (com classes e funções de primeira classe - S4_03)
+from abc import ABC, abstractmethod
 import numpy as np
-from dominio import Vulnerabilidade, fabricar_equipamento
+from dominio import Vulnerabilidade, FabricaEquipamento, fabricar_equipamento
 from persistencia import InterfaceRepositorio, RepositorioJSON
 
+# --- Padrão Strategy com Classes (S4_03) ---
+class EstrategiaOrdenacao(ABC):
+    @abstractmethod
+    def ordenar(self, lista_relatorio): pass
+
+class OrdenacaoPorRiscoEfetivo(EstrategiaOrdenacao):
+    # Ordena do maior risco efetivo para o menor (prioridade crítica)
+    def ordenar(self, lista_relatorio):
+        return sorted(lista_relatorio, key=lambda item: item["risco_efetivo"], reverse=True)
+
+class OrdenacaoPorId(EstrategiaOrdenacao):
+    # Ordena pelo ID numérico do equipamento (crescente)
+    def ordenar(self, lista_relatorio):
+        return sorted(lista_relatorio, key=lambda item: item["id_ativo"])
+
+# --- Padrão Strategy reescrito como Funções de Primeira Classe (S4_03 item 5) ---
+def estrategia_ordenar_por_nome(lista_relatorio):
+    return sorted(lista_relatorio, key=lambda item: item["nome"].lower())
+
+def estrategia_ordenar_por_risco_proprio(lista_relatorio):
+    return sorted(lista_relatorio, key=lambda item: item["risco_proprio"], reverse=True)
+
 class CalculadoraRisco:
-    def calcular(self, equipamentos, vulnerabilidades):
+    def calcular(self, equipamentos, vulnerabilidades, estrategia_ordenacao=None):
         lista_eq = list(equipamentos.values())
         lista_vul = list(vulnerabilidades.values())
         n, m = len(lista_eq), len(lista_vul)
@@ -33,6 +57,14 @@ class CalculadoraRisco:
         for i, eq in enumerate(lista_eq):
             rp, re = round(float(b[i, 0]), 2), round(float(x[i, 0]), 2)
             rel.append({"id_ativo": eq.id_ativo, "nome": eq.nome, "tipo": eq.tipo, "fator_exposicao": eq.fator_exposicao(), "risco_proprio": rp, "risco_efetivo": re, "risco_total": re})
+
+        # Aplica a estratégia de ordenação caso seja informada (aceita classe EstrategiaOrdenacao ou função de 1ª classe)
+        if estrategia_ordenacao is not None:
+            if isinstance(estrategia_ordenacao, EstrategiaOrdenacao):
+                rel = estrategia_ordenacao.ordenar(rel)
+            elif callable(estrategia_ordenacao):
+                rel = estrategia_ordenacao(rel)
+
         return {"invertivel": True, "determinante": round(det, 6), "numero_condicao": round(cond, 4), "equipamentos": rel}
 
 class ServicoInventario:
@@ -45,7 +77,7 @@ class ServicoInventario:
         self.repositorio = novo_repo
         self.carregar_dados()
     def criar_objeto_equipamento(self, id_ativo, nome, responsavel, setor, tipo):
-        return fabricar_equipamento(id_ativo, nome, responsavel, setor, tipo)
+        return FabricaEquipamento.criar(id_ativo, nome, responsavel, setor, tipo)
     def salvar_dados(self):
         self.repositorio.salvar(self.equipamentos, self.vulnerabilidades)
     def carregar_dados(self):
@@ -76,5 +108,5 @@ class ServicoInventario:
         if soma + peso >= 1.0: raise ValueError("Soma das dependências deve ser < 1.0.")
         eq.dependencias[str(id_destino)] = peso
         self.salvar_dados()
-    def calcular_analise_risco_api(self):
-        return self.calculadora.calcular(self.equipamentos, self.vulnerabilidades)
+    def calcular_analise_risco_api(self, estrategia_ordenacao=None):
+        return self.calculadora.calcular(self.equipamentos, self.vulnerabilidades, estrategia_ordenacao)
