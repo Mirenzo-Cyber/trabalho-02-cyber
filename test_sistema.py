@@ -117,3 +117,32 @@ def test_persistencia_json_s4_04(tmp_path):
     open(arq_vul, "w", encoding="utf-8").write("")
     eq_lidos, vul_lidos = repo.carregar()
     assert eq_lidos == {} and vul_lidos == {}
+
+
+def test_health_s4_05():
+    from app import app
+    assert app.test_client().get("/health").status_code == 200
+
+def test_sql_joins_parametrizados_s4_06(tmp_path):
+    from dominio import Vulnerabilidade
+    from consultas_sql import RepositorioSQLite
+    from servicos import ServicoInventario
+
+    banco_teste = str(tmp_path / "teste_s4_06.db")
+    repo_sql = RepositorioSQLite(caminho_banco=banco_teste)
+    servico = ServicoInventario(repositorio=repo_sql)
+
+    servico.registrar_equipamento(1, "Servidor SQL", "DBA", "TI", "SERVIDORES")
+    servico.registrar_equipamento(2, "Switch Core", "Redes", "Infra", "SWITCHES")
+    servico.associar_vulnerabilidade(10, 1, "SQL Injection", "Web", 9.8)
+    servico.vulnerabilidades[20] = Vulnerabilidade(20, "Porta Telnet Aberta", "Rede", 5.0)
+    servico.registrar_dependencia(1, 2, 0.35)
+
+    afetados = repo_sql.listar_vulnerabilidades_com_equipamentos(severidade_minima=8.0)
+    assert len(afetados) == 1 and afetados[0]["id_vul"] == 10
+
+    orfas = repo_sql.listar_vulnerabilidades_sem_equipamento(status_filtro="Aberta")
+    assert len(orfas) == 1 and orfas[0]["id_vul"] == 20
+
+    deps = repo_sql.listar_dependencias_autojuncao(peso_minimo=0.1)
+    assert len(deps) == 1 and deps[0]["nome_origem"] == "Servidor SQL" and deps[0]["nome_destino"] == "Switch Core"
