@@ -146,3 +146,22 @@ def test_sql_joins_parametrizados_s4_06(tmp_path):
 
     deps = repo_sql.listar_dependencias_autojuncao(peso_minimo=0.1)
     assert len(deps) == 1 and deps[0]["nome_origem"] == "Servidor SQL" and deps[0]["nome_destino"] == "Switch Core"
+
+def test_hash_e_indices_s4_08(tmp_path):
+    from dominio import Servidor, Computador
+    from consultas_sql import RepositorioSQLite
+
+    # 1. Testa uso de Equipamento como chave de dicionário (Item 4)
+    srv1 = Servidor(1, "Srv-A", "TI", "Data Center", "SERVIDORES")
+    srv1_copia = Computador(1, "Srv-A-Renomeado", "Outro", "Outro", "COMPUTADORES")
+    mapa_alocacao = {srv1: "Rack Principal 01"}
+    assert mapa_alocacao[srv1_copia] == "Rack Principal 01"
+
+    # 2. Testa criação de índice e comparação com EXPLAIN QUERY PLAN (Item 5)
+    banco = str(tmp_path / "teste_indices.db")
+    repo = RepositorioSQLite(caminho_banco=banco)
+    repo.salvar({1: srv1}, {})
+    planos = repo.comparar_plano_execucao_indice("Data Center")
+    assert "SCAN" in planos["antes_sem_indice"].upper()
+    assert "SEARCH" in planos["depois_com_indice"].upper()
+    assert "IDX_EQUIPAMENTOS_SETOR" in planos["depois_com_indice"].upper()

@@ -171,3 +171,37 @@ class RepositorioSQLite(InterfaceRepositorio):
                 }
                 for r in cursor.fetchall()
             ]
+
+    # --- S4_08: Criação de Índices no Banco de Dados e Análise com EXPLAIN QUERY PLAN ---
+    def criar_indices(self):
+        # Cria índices secundários para acelerar filtros de busca por setor, tipo e severidade
+        with self._conectar() as conn:
+            cursor = conn.cursor()
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_equipamentos_setor ON equipamentos(setor)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_equipamentos_tipo ON equipamentos(tipo)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_vulnerabilidades_severidade ON vulnerabilidades(severidade)")
+            conn.commit()
+
+    def remover_indices(self):
+        with self._conectar() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DROP INDEX IF EXISTS idx_equipamentos_setor")
+            cursor.execute("DROP INDEX IF EXISTS idx_equipamentos_tipo")
+            cursor.execute("DROP INDEX IF EXISTS idx_vulnerabilidades_severidade")
+            conn.commit()
+
+    # Compara o plano de execução (EXPLAIN QUERY PLAN) antes e depois de criar o índice (S4_08 - Item 5)
+    def comparar_plano_execucao_indice(self, setor_busca="Data Center"):
+        consulta = "SELECT id_ativo, nome, tipo FROM equipamentos WHERE setor = ?"
+        with self._conectar() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DROP INDEX IF EXISTS idx_equipamentos_setor")
+            plano_sem_indice = [r[3] for r in cursor.execute(f"EXPLAIN QUERY PLAN {consulta}", (setor_busca,)).fetchall()]
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_equipamentos_setor ON equipamentos(setor)")
+            plano_com_indice = [r[3] for r in cursor.execute(f"EXPLAIN QUERY PLAN {consulta}", (setor_busca,)).fetchall()]
+
+        return {
+            "antes_sem_indice": " | ".join(plano_sem_indice),
+            "depois_com_indice": " | ".join(plano_com_indice),
+        }

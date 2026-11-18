@@ -67,3 +67,18 @@ SELECT e_orig.id_ativo AS id_dependente,
 FROM dependencias_equipamentos d
 INNER JOIN equipamentos e_orig ON d.id_origem = e_orig.id_ativo
 INNER JOIN equipamentos e_dest ON d.id_destino = e_dest.id_ativo;
+
+-- =========================================================================
+-- S4_08: CRIAÇÃO DE ÍNDICES E ANÁLISE DE PLANO DE EXECUÇÃO (EXPLAIN QUERY PLAN)
+-- =========================================================================
+
+-- Antes do índice: realiza SCAN equipamentos (varredura sequencial O(n))
+EXPLAIN QUERY PLAN SELECT id_ativo, nome, tipo FROM equipamentos WHERE setor = 'Data Center';
+
+-- Criação dos índices aplicados ao Trabalho 02
+CREATE INDEX IF NOT EXISTS idx_equipamentos_setor ON equipamentos(setor);
+CREATE INDEX IF NOT EXISTS idx_equipamentos_tipo ON equipamentos(tipo);
+CREATE INDEX IF NOT EXISTS idx_vulnerabilidades_severidade ON vulnerabilidades(severidade);
+
+-- Depois do índice: realiza SEARCH equipamentos USING INDEX idx_equipamentos_setor (busca em árvore B O(log n))
+EXPLAIN QUERY PLAN SELECT id_ativo, nome, tipo FROM equipamentos WHERE setor = 'Data Center';
